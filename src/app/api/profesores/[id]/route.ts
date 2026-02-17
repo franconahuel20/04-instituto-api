@@ -1,4 +1,4 @@
-import type { Curso } from "@/generated/prisma/client";
+import type { Profesor } from "@/generated/prisma/client";
 import prisma from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import z from "zod";
@@ -6,16 +6,16 @@ import z from "zod";
 /* =========================
    Helpers
 ========================= */
-const getCurso = async (id: string): Promise<Curso | null> => {
-  const curso = await prisma.curso.findUnique({
+const getProfesor = async (id: string): Promise<Profesor | null> => {
+  const profesor = await prisma.profesor.findUnique({
     where: { id: Number(id) },
   });
 
-  return curso;
+  return profesor;
 };
 
 /* =========================
-   GET /api/cursos/:id
+   GET /api/profesores/:id
 ========================= */
 export async function GET(
   request: Request,
@@ -24,47 +24,43 @@ export async function GET(
   try {
     const { id } = await params;
 
-    const curso = await prisma.curso.findUnique({
-      where: { id: Number(id) },
-      include: {
-        profesor: true,
-        alumnos: true,
-      },
-    });
-
-    if (!curso) {
+    const profesor = await getProfesor(id);
+    if (!profesor) {
       return NextResponse.json(
-        { mensaje: "Curso no encontrado" },
+        { mensaje: "Profesor no encontrado" },
         { status: 404 },
       );
     }
 
-    return NextResponse.json(curso, { status: 200 });
+    return NextResponse.json(profesor, { status: 200 });
   } catch (error) {
     console.error(error);
     return NextResponse.json(
-      { mensaje: "Ocurrió un error al obtener el curso" },
+      { mensaje: "Ocurrió un error al obtener el profesor" },
       { status: 500 },
     );
   }
 }
 
-
 /* =========================
    Zod schema
 ========================= */
-const cursoSchema = z.object({
+const profesorSchema = z.object({
   nombre: z.string()
     .trim()
     .nonempty("El nombre es obligatorio")
     .min(3, "El nombre debe tener al menos 3 caracteres")
-    .max(100, "El nombre debe tener como máximo 100 caracteres"),
+    .max(50, "El nombre debe tener como máximo 50 caracteres"),
 
-  profesorId: z.number().int().positive().optional().nullable(),
+  apellido: z.string("El apellido debe ser un string")
+    .trim()
+    .nonempty("El apellido es obligatorio"),
+
+  email: z.email("Debe ingresar un email válido"),
 });
 
 /* =========================
-   PUT /api/cursos/:id
+   PUT /api/profesores/:id
 ========================= */
 export async function PUT(
   request: Request,
@@ -73,16 +69,16 @@ export async function PUT(
   try {
     const { id } = await params;
 
-    const curso = await getCurso(id);
-    if (!curso) {
+    const profesor = await getProfesor(id);
+    if (!profesor) {
       return NextResponse.json(
-        { mensaje: "Curso no encontrado" },
+        { mensaje: "Profesor no encontrado" },
         { status: 404 },
       );
     }
 
     const body = await request.json();
-    const result = cursoSchema.safeParse(body);
+    const result = profesorSchema.safeParse(body);
 
     if (!result.success) {
       const errors: Record<string, string> = {};
@@ -94,26 +90,23 @@ export async function PUT(
       return NextResponse.json(errors, { status: 400 });
     }
 
-    const cursoActualizado = await prisma.curso.update({
+    const profesorActualizado = await prisma.profesor.update({
       where: { id: Number(id) },
-      data: {
-        nombre: result.data.nombre,
-        profesorId: result.data.profesorId ?? null,
-      },
+      data: result.data,
     });
 
-    return NextResponse.json(cursoActualizado, { status: 200 });
+    return NextResponse.json(profesorActualizado, { status: 200 });
   } catch (error) {
     console.error(error);
     return NextResponse.json(
-      { mensaje: "Ocurrió un error al actualizar el curso" },
+      { mensaje: "Ocurrió un error al actualizar el profesor" },
       { status: 500 },
     );
   }
 }
 
 /* =========================
-   DELETE /api/cursos/:id
+   DELETE /api/profesores/:id
 ========================= */
 export async function DELETE(
   request: Request,
@@ -122,23 +115,23 @@ export async function DELETE(
   try {
     const { id } = await params;
 
-    const curso = await getCurso(id);
-    if (!curso) {
+    const profesor = await getProfesor(id);
+    if (!profesor) {
       return NextResponse.json(
-        { mensaje: "Curso no encontrado" },
+        { mensaje: "Profesor no encontrado" },
         { status: 404 },
       );
     }
 
-    const cursoEliminado = await prisma.curso.delete({
+    const profesorEliminado = await prisma.profesor.delete({
       where: { id: Number(id) },
     });
 
-    return NextResponse.json(cursoEliminado, { status: 200 });
+    return NextResponse.json(profesorEliminado, { status: 200 });
   } catch (error) {
     console.error(error);
     return NextResponse.json(
-      { mensaje: "Ocurrió un error al eliminar el curso" },
+      { mensaje: "Ocurrió un error al eliminar el profesor" },
       { status: 500 },
     );
   }
